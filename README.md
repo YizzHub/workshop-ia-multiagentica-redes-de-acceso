@@ -48,7 +48,3 @@ equipo personal sin Linux, Mininet ni privilegios de administrador. La
 integración con Mininet, Open vSwitch y Ryu corresponde a una extensión para
 Linux y requiere una configuración aparte; no es necesaria para completar el
 workshop.
-
-`instructivo_para_claude_taller_multi_agentic_ai_en_redes_de_acceso.txt` es el
-instructivo de referencia del material; no se necesita para ejecutar el
-notebook.
