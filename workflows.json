@@ -1,0 +1,57 @@
+{
+  "workflows": [
+    {
+      "name": "establish_ip_connection",
+      "description": "Establish, create or provision a new IP connection (connectivity service) from a source node to a destination node with a requested bandwidth or bitrate.",
+      "defaults": {},
+      "steps": [
+        {
+          "intent": "compute the shortest route between source and destination nodes for a candidate connection",
+          "tool": "compute_route",
+          "args": ["src_node", "dst_node"]
+        },
+        {
+          "intent": "provision and bring up a new IP connection on the SDN-controlled network",
+          "tool": "establish_ip_connection",
+          "args": ["src_node", "dst_node", "bitrate_gbps"]
+        }
+      ]
+    },
+    {
+      "name": "remove_ip_connection",
+      "description": "Remove, delete, tear down or release an existing IP connection between two nodes and restore isolation.",
+      "defaults": {},
+      "steps": [
+        {
+          "intent": "tear down an existing IP connection on the SDN-controlled network",
+          "tool": "remove_ip_connection",
+          "args": ["src_node", "dst_node"]
+        }
+      ]
+    },
+    {
+      "name": "query_connection_status",
+      "description": "Show, list or check the status and state of the IP connections configured in the SDN controller.",
+      "defaults": {},
+      "steps": [
+        {
+          "intent": "retrieve the status of IP connections from the SDN controller",
+          "tool": "get_connection_status",
+          "args": []
+        }
+      ]
+    },
+    {
+      "name": "compute_route_only",
+      "description": "Compute or find the shortest route or path between two nodes without provisioning anything (what-if path query).",
+      "defaults": {},
+      "steps": [
+        {
+          "intent": "compute the shortest route between source and destination nodes for a candidate connection",
+          "tool": "compute_route",
+          "args": ["src_node", "dst_node"]
+        }
+      ]
+    }
+  ]
+}

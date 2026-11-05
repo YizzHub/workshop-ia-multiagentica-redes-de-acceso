@@ -1,0 +1,399 @@
+================================================================================
+INSTRUCTIVO MAESTRO (PROMPT) PARA CLAUDE: CREACIÓN DE JUPYTER NOTEBOOK (.IPYNB)
+TALLER PRÁCTICO: "IA MULTI-AGÉNTICA CENTRALIZADA PARA LA OPERACIÓN DE REDES DE
+TELECOMUNICACIONES Y REDES DE ACCESO"
+================================================================================
+
+1. ROL Y OBJETIVO PRINCIPAL
+--------------------------------------------------------------------------------
+Actúa como un Investigador Senior en Redes Ópticas y de Paquetes (experto en SDN,
+IA Agéntica y arquitecturas 6G) y Profesor Universitario del curso "Redes de Acceso".
+
+Tu objetivo es generar un **Jupyter Notebook interactivo completo (`.ipynb`)**
+(junto con los bloques de código auto-contenidos que escriban los scripts
+auxiliares mediante el comando mágico `%%writefile`) para dictar un Workshop
+práctico universitario basado fielmente en el artículo científico:
+
+- **Paper Base:** Pol González y Luis Velasco, *"Demonstration of Centralized
+  Multi-Agentic AI for Telecom Network Operation"*, Optical Communications Group
+  (GCO), Universitat Politècnica de Catalunya (UPC), IEEE, 2026.
+
+Además, debes enriquecer el trasfondo teórico y los ejercicios de extensión hacia
+el segmento de **Redes de Acceso y Metro-Acceso** integrando el contexto de las
+referencias directas de los mismos autores incluidas en el paper:
+- **Referencia [1]:** P. González et al., *"Near-Real-Time 6G Service Operation
+  Enabled by Distributed Intelligence and In-Band Telemetry"*, IEEE/OPTICA JOCN,
+  vol. 17, pp. A247-A258, 2025.
+- **Referencia [2]:** H. Shakespear-Miles et al., *"Centralized and Distributed
+  Approaches to Control Optical Point-to-Multipoint Systems Near-Real-Time"*,
+  IEEE/OPTICA JOCN, vol. 16, pp. 565-576, 2024.
+- **Referencia [3]:** M. Devigili et al., *"Applications of the OCATA Time Domain
+  Digital Twin: from QoT Estimation to Failure Management"*, IEEE/OPTICA JOCN,
+  vol. 16, pp. 221-232, 2024.
+
+El taller debe estar completamente en **español** (con código comentado y
+variables estándar en inglés según las trazas originales del paper) y diseñado
+para que los estudiantes de Ingeniería de Telecomunicaciones / Redes comprendan y
+repliquen de principio a fin la arquitectura propuesta.
+
+================================================================================
+2. MARCO TEÓRICO Y CONTEXTO QUE DEBES EXPLICAR EN EL NOTEBOOK
+================================================================================
+Antes de pasar al código de cada sección, el Notebook debe guiar al estudiante
+por los siguientes conceptos clave extraídos del paper y sus referencias:
+
+A. El Problema en Redes de Acceso y Transporte hacia 6G (Refs [1], [2], [3]):
+   - Las redes 6G exigen servicios altamente dinámicos con alta capacidad y baja
+     latencia extremo a extremo ($d^{max}$).
+   - En el segmento de **Redes de Acceso y Metro-Agregación** (Ref [2]), se están
+     adoptando arquitecturas ópticas Punto-a-Multipunto (P2MP) basadas en
+     multiplexación digital de subportadoras (DSCM), donde un nodo Hub (OLT/Receptor
+     de $16$ subportadoras de $25\text{ Gb/s}$) conecta múltiples nodos Hoja
+     (Leaf/ONU/Nodos de Acceso con transmisores de $4$ subportadoras).
+   - Mientras que los sistemas multi-agente (MAS) distribuidos con Aprendizaje por
+     Refuerzo Profundo (DRL/TD3) y telemetría In-Band (INT en switches P4) se
+     encargan de decisiones en tiempo casi real (escala de segundos) cerca del
+     plano de datos (Refs [1] y [2]), el **Plano de Control Centralizado** sigue
+     dominado por controladores SDN tradicionales y sistemas auxiliares como
+     Gemelos Digitales (ej. OCATA, Ref [3]).
+   - Para alcanzar el **Nivel 4 de Redes Autónomas (ANL4)** definido por el
+     TM Forum (IG1252), se requiere gestión basada en intenciones (*Intent-Based
+     Networking*) donde el operador exprese órdenes en lenguaje natural.
+
+B. Los 3 Retos de usar LLMs en Operación de Redes de Telecomunicaciones:
+   1. **Privacidad, Seguridad y Costos:** Usar modelos frontera externos (en la
+      nube pública) expone datos críticos de la topología e inventario del
+      operador. *Solución del paper:* Usar un LLM *On-Premises* local (Mistral 7B
+      de $7.3\times 10^9$ parámetros servido mediante **Ollama**).
+   2. **Determinismo y Explicabilidad:** La toma de decisiones operativas en una
+      red real no puede depender de "alucinaciones" o inferencias probabilísticas
+      del LLM (como pedirle al LLM que calcule rutas o configure tablas de flujo
+      directamente). *Solución del paper:* Combinar el razonamiento semántico del
+      LLM con flujos de trabajo predefinidos en una base de datos vectorial
+      (**ChromaDB**) y delegar los cálculos y acciones de red a herramientas
+      deterministas externas (PCE, Inventario) mediante el **Model Context
+      Protocol (MCP)**.
+   3. **Integración con la Capa SDN Existente:** No se debe modificar la interfaz
+      Sur (*Southbound Interface* - SBI, como OpenFlow) hacia la infraestructura
+      de red. *Solución del paper:* Extender la interfaz Norte (*Northbound
+      Interface* - NBI) del controlador SDN (**Ryu SDN** o **ETSI TeraFlowSDN**)
+      exponiéndola como un servidor **MCP**, siguiendo los lineamientos del
+      *Telecom Infra Project (TIP)*.
+
+================================================================================
+3. HERRAMIENTAS Y PROTOCOLOS OBLIGATORIOS A EXPLICAR E IMPLEMENTAR
+================================================================================
+Debes dedicar celdas explicativas detalladas y código funcional a cada una de las
+siguientes tecnologías requeridas:
+
+1. **A2A Protocol (Agent2Agent) - [https://a2a-protocol.org/latest/]:**
+   - *Qué explicar:* Protocolo abierto diseñado para la interoperabilidad y
+     coordinación entre agentes de IA independientes. Explica los conceptos de
+     **Agent Card** (metadatos en JSON que describen capacidades, habilidades y
+     endpoints del agente), **Task Lifecycle** (envío de tareas, estados de
+     ejecución, artefactos de respuesta) y el patrón de orquestación **Handoff**
+     (delegación dinámica de tareas del Agente Orquestador hacia Agentes
+     Especializados en capas específicas como paquete u óptica).
+   - *Implementación en el Notebook:* Construir la comunicación cliente-servidor
+     (sobre HTTP/JSON-RPC compatible con la especificación A2A y el endpoint
+     `POST /execute_plan` mostrado en la captura de Wireshark de la Figura 3 del
+     paper) entre el `Orchestrator` y el agente especializado `IPConnectionAgent`.
+
+2. **MCP (Model Context Protocol) con FastMCP - [https://modelcontextprotocol.io/]:**
+   - *Qué explicar:* Protocolo abierto que estandariza cómo las aplicaciones de
+     IA y agentes descubren e invocan herramientas externas (*Tools*) y fuentes de
+     datos (*Resources*). Cuando el agente especializado abre una sesión MCP,
+     consulta la lista de herramientas disponibles; el servidor MCP responde con
+     el nombre, descripción en texto plano y el `JSON Schema` de los argumentos de
+     entrada de cada herramienta.
+   - *Implementación en el Notebook:* Usar la librería `fastmcp` (o un servidor
+     compatible con FastMCP) que exponga dos herramientas deterministas críticas:
+     a) `compute_route(src_node: str, dst_node: str)`: Invoca al PCE.
+     b) `establish_ip_connection(src_node: str, dst_node: str, bitrate_gbps: float)`:
+        Invoca la NBI del controlador SDN.
+
+3. **Mininet y Open vSwitch (OVS) - [https://mininet.org/]:**
+   - *Qué explicar:* Emulador de redes definidas por software que crea una red
+     virtual realista ejecutando un kernel real, switches OpenFlow (OVS) y hosts
+     en una sola máquina mediante *network namespaces*. En un curso de **Redes de
+     Acceso**, contextualiza los hosts `H1` y `H2` como nodos de borde/acceso
+     (por ejemplo, una ONU/cpe agregada y un BNG/Edge Server) conectados a través
+     del plano de datos de conmutación de paquetes OpenFlow 1.3.
+   - *Implementación en el Notebook:* Incluir el script de topología Mininet con
+     OpenFlow 1.3 y un controlador remoto apuntando a Ryu. Además, dado que
+     algunos estudiantes pueden ejecutar el Jupyter Notebook en entornos sin
+     privilegios `root` o en contenedores restringidos, **proporciona un modo
+     dual (Real Mininet + Simulador de respaldo transparente)** para que todas
+     las celdas se puedan ejecutar sin errores en cualquier computador.
+
+4. **Ryu SDN Framework - [https://ryu-sdn.org/]:**
+   - *Qué explicar:* Framework de controlador SDN basado en componentes en Python
+     que soporta el protocolo OpenFlow 1.3 para programar switches OVS.
+   - *Implementación en el Notebook:* Tal como especifica la Sección 3 del paper,
+     escribir la aplicación Ryu (`ryu_isolation_controller.py`) que opera como un
+     switch de aprendizaje L2 estándar (instalando reglas MAC-a-puerto), pero que
+     **por defecto bloquea/aísla el tráfico entre `H1` y `H2`** (haciendo que
+     `h1 ping h2` devuelva `Destination Host Unreachable`). Además, mediante
+     `ryu.app.wsgi`, la aplicación debe exponer una **API REST con 3 endpoints**
+     (incluyendo `POST /service/ip/create`, `GET /service/ip/status` y
+     `DELETE /service/ip/delete`) que permiten a una entidad externa (el Agente a
+     través de MCP) levantar el aislamiento e instalar las reglas de flujo
+     OpenFlow en tiempo de ejecución.
+
+5. **ETSI TeraFlowSDN (TFS) - [https://tfs.etsi.org/]:**
+   - *Qué explicar:* Tal como menciona el paper en su Sección 3 (Referencia [10])
+     y la Referencia [1] (Referencia [5]), TeraFlowSDN es el controlador SDN
+     nativo de la nube (*cloud-native*, basado en microservicios en contenedores
+     comunicados por gRPC y REST) estandarizado por ETSI para redes de transporte
+     y acceso más allá de 5G/6G.
+   - *Implementación en el Notebook:* Dedicar un módulo o subsección técnica a
+     explicar la arquitectura de microservicios de ETSI TeraFlowSDN (`Context`,
+     `Device`, `Service`, `PathComp`, `Telemetry`, `WebUI`) y mostrar en código
+     cómo el servidor MCP creado para Ryu se adapta directamente al componente
+     `Service` y `PathComp` de TeraFlowSDN para aprovisionar servicios L2/L3 y
+     bypasses ópticos en producción.
+
+6. **Base de Conocimiento Vectorial (ChromaDB) y LLM Local (Ollama + Mistral 7B):**
+   - *Qué explicar:* El diseño *Zero-Shot Prompting* del paper. El prompt del
+     operador NO incluye ejemplos (*few-shot*). En su lugar, un archivo de
+     configuración puebla inicialmente **ChromaDB** con los flujos de trabajo
+     (*workflows*) soportados, donde cada workflow tiene un `name`, `description`
+     y una secuencia ordenada de `steps`. El Orquestador convierte el prompt del
+     usuario en *embeddings*, consulta ChromaDB para recuperar el workflow
+     correcto y usa **Mistral 7B** en **Ollama** para extraer argumentos y armar
+     el plan estructurado.
+
+================================================================================
+4. ESPECIFICACIÓN EXACTA DEL FLUJO Y PAYLOADS JSON DEL PAPER (FIDELIDAD 100%)
+================================================================================
+Claude, es OBLIGATORIO que el código del Jupyter Notebook reproduzca exactamente
+la secuencia de 8 pasos (Figura 2), los endpoints HTTP capturados en Wireshark
+(Figura 3), la prueba de conectividad en Mininet (Figura 4) y las estructuras JSON
+exactas (Figura 5) del artículo:
+
+### A. Tabla de Mensajes HTTP (Figura 3 del Paper):
+1. `User -> Orchestrator`: `POST /prompt`
+2. `Orchestrator -> LLM`: `POST /plan` (Respuesta: `HTTP/1.1 200 OK`)
+3. `Orchestrator -> Agent`: `POST /execute_plan` (Handoff vía A2A)
+4. `Agent -> PCE`: `POST /compute_route` (vía MCP, Respuesta: `HTTP/1.1 200 OK`)
+5. `Agent -> SDN`: `POST /service/ip/create` (vía MCP hacia Ryu SDN, Respuesta: `HTTP/1.1 200 OK`)
+6. *(Implícito en Plano de Datos)*: `Ryu SDN -> OVS (Mininet)`: Mensajes OpenFlow 1.3 (`OFPT_FLOW_MOD`)
+7. `Agent -> Orchestrator`: Respuesta de `POST /execute_plan` con `HTTP/1.1 200 OK`
+8. `Orchestrator -> User`: Respuesta de `POST /prompt` con `HTTP/1.1 200 OK`
+
+### B. Prompt de Entrada del Operador (Paso 1):
+`"Establish an IP connection from H1 to H2 with 1GB bandwidth"`
+
+### C. Estructura Exacta del Plan Generado tras Consultar ChromaDB + LLM (Mensaje 2 - Figura 5):
+```json
+{
+  "steps": [
+    {
+      "intent": "compute the shortest route between source and destination nodes for a candidate connection"
+    },
+    {
+      "intent": "provision and bring up a new IP connection on the SDN-controlled network"
+    }
+  ],
+  "plans": [
+    {
+      "tool": "compute_route",
+      "args": {
+        "src_node": "H1",
+        "dst_node": "H2"
+      },
+      "source": "llm"
+    },
+    {
+      "tool": "establish_ip_connection",
+      "args": {
+        "src_node": "H1",
+        "dst_node": "H2",
+        "bitrate_gbps": 1
+      },
+      "source": "llm"
+    }
+  ]
+}
+```
+
+### D. Estructura Exacta de la Traza de Ejecución Devuelta al Usuario (Mensaje 8 - Figura 5):
+Nota: El PCE calcula la ruta sobre el grafo de la topología devolviendo el camino
+`["H1", "R1", "R2", "R3", "H2"]` con `4` saltos (`hops`).
+```json
+{
+  "trace": [
+    {
+      "step": 1,
+      "intent": "compute the shortest route between source and destination nodes for a candidate connection",
+      "tool": "compute_route",
+      "args": {
+        "src_node": "H1",
+        "dst_node": "H2"
+      },
+      "agent": "IPConnectionAgent",
+      "result": {
+        "src": "H1",
+        "dst": "H2",
+        "path": ["H1", "R1", "R2", "R3", "H2"],
+        "hops": 4
+      }
+    },
+    {
+      "step": 2,
+      "intent": "provision and bring up a new IP connection on the SDN-controlled network",
+      "tool": "establish_ip_connection",
+      "args": {
+        "src_node": "H1",
+        "dst_node": "H2",
+        "bitrate_gbps": 1
+      },
+      "agent": "IPConnectionAgent",
+      "result": {
+        "connection_id": "H1-H2",
+        "status": "UP",
+        "message": "Connection H1-H2 established"
+      }
+    }
+  ]
+}
+```
+
+### E. Verificación en Mininet (Figura 4 del Paper):
+- **Estado Inicial (Aislamiento activo antes del prompt):**
+  ```text
+  mininet> h1 ping h2
+  PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
+  From 10.0.0.1 icmp_seq=1 Destination Host Unreachable
+  From 10.0.0.1 icmp_seq=2 Destination Host Unreachable
+  From 10.0.0.1 icmp_seq=3 Destination Host Unreachable
+  ```
+- **Estado Final (Después de que `IPConnectionAgent` invoca `establish_ip_connection`):**
+  ```text
+  mininet> h1 ping h2
+  PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
+  64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=10.5 ms
+  64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=0.288 ms
+  64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=0.079 ms
+  ```
+
+================================================================================
+5. ESTRUCTURA DE MÓDULOS QUE DEBE TENER EL JUPYTER NOTEBOOK
+================================================================================
+Organiza el Jupyter Notebook en **8 Módulos Pedagógicos** claramente numerados,
+alternando celdas Markdown ricas en explicaciones, diagramas en ASCII/Mermaid,
+ecuaciones en LaTeX y celdas de código Python ejecutables:
+
+- **Módulo 0: Introducción, Objetivos de Aprendizaje y Preparación del Entorno**
+  - Bienvenida al Workshop del curso *Redes de Acceso*.
+  - Diagrama completo de la Arquitectura (replicando la Figura 1 y Figura 2 del
+    paper en Mermaid/ASCII).
+  - Instalación de paquetes (`chromadb`, `ollama`, `fastmcp`, `networkx`,
+    `fastapi`, `uvicorn`, `requests`, `pydantic`) y configuración de una bandera
+    `SIMULATION_MODE = True/False` para permitir que el notebook corra tanto
+    conectado a servicios reales (Mininet/Ryu/Ollama) como en modo emulado local
+    dentro de Colab/Jupyter sin GPU o sin privilegios `sudo`.
+
+- **Módulo 1: De las Redes de Acceso 6G (P2MP e INT) a la IA Agéntica Centralizada**
+  - Explicación teórica conectando las Referencias [1], [2] y [3] con el paper
+    principal.
+  - Ecuaciones clave de las referencias para dar rigor académico al taller:
+    * Complejidad de mensajes en control centralizado vs distribuido en redes de
+      acceso ópticas P2MP (Ref [2]):
+      $$M_{Cent} = 2 \times |T| + 1$$
+      $$M_{Det} = \sum_{t \in T} |T| \cdot r_t + 2 \times H$$
+    * Función de recompensa multi-objetivo de los agentes de flujo en tiempo casi
+      real para garantizar retardo $d(t) \le d^{max}$ (Ref [1]):
+      $$r(t) = \alpha_{delay} \cdot r_{delay}(t) + \alpha_{cost} \cdot r_{cost}(t)$$
+  - Explicación de por qué el plano centralizado utiliza **A2A + MCP + SDN** para
+    la provisión basada en intenciones.
+
+- **Módulo 2: Capa de Infraestructura y Control SDN (Mininet + Ryu SDN + TeraFlowSDN)**
+  - Explicación de Mininet (OpenFlow 1.3) y Ryu SDN.
+  - Celda con `%%writefile ryu_controller.py`: Código completo de la aplicación
+    Ryu SDN que implementa el switch L2 con aislamiento por defecto entre `H1` y
+    `H2` y los 3 endpoints REST (`/service/ip/create`, `/service/ip/delete`,
+    `/service/ip/status`).
+  - Celda con `%%writefile mininet_topo.py`: Script de Mininet para levantar la
+    red y probar el bloqueo inicial (`Destination Host Unreachable`).
+  - Subsección comparativa con **ETSI TeraFlowSDN (`https://tfs.etsi.org/`)**:
+    Explicación de cómo esta misma NBI se mapea al microservicio `Service` de TFS
+    mediante JSON/gRPC.
+
+- **Módulo 3: Herramientas Deterministas de Red y Servidor MCP (FastMCP + PCE)**
+  - Explicación del **Model Context Protocol (MCP)** y por qué garantiza el
+    determinismo exigido por los operadores de telecomunicaciones.
+  - Construcción del **Inventario de Red / Estado de Red** (usando `NetworkX` con
+    los nodos `["H1", "R1", "R2", "R3", "H2"]`, capacidades de enlace y estado).
+  - Construcción del **Path Computation Element (PCE)** determinista.
+  - Implementación del servidor **FastMCP** registrando las herramientas
+    `compute_route` y `establish_ip_connection`, e inspección en vivo del
+    `JSON Schema` que el servidor MCP entrega a los agentes.
+
+- **Módulo 4: Base de Conocimiento Vectorial (ChromaDB) y Motor LLM Local (Ollama - Mistral 7B)**
+  - Creación del archivo de configuración de *workflows* y carga en **ChromaDB**.
+  - Demostración de búsqueda semántica (*Zero-Shot*): cómo el prompt en lenguaje
+    natural recupera el workflow de 2 pasos mediante similitud de embeddings.
+  - Integración con **Ollama (`mistral:7b`)** (con fallback automático inteligente
+    si el alumno no tiene Ollama corriendo localmente) para transformar el prompt
+    del operador y los pasos recuperados de ChromaDB en el JSON exacto del
+    **Mensaje 2 (`POST /plan`)**.
+
+- **Módulo 5: Agente Especializado (`IPConnectionAgent`) y Protocolo A2A (`https://a2a-protocol.org/latest/`)**
+  - Explicación detallada del protocolo **Agent2Agent (A2A)**: estructura del
+    `AgentCard` (`/.well-known/agent.json`), descubrimiento de capacidades y el
+    patrón de delegación **Handoff**.
+  - Implementación de la clase `IPConnectionAgent` que:
+    1. Publica su `AgentCard` compatible con A2A.
+    2. Recibe la delegación del plan (`POST /execute_plan`).
+    3. Abre sesión con el servidor **MCP**, descubre las herramientas disponibles
+       y utiliza el LLM para asociar cada paso del plan con la herramienta MCP.
+    4. Incluye soporte opcional para **Human-in-the-Loop (HITL)** tras el cálculo
+       de ruta del PCE antes de programar el controlador SDN.
+
+- **Módulo 6: Demostración End-to-End del Flujo de 8 Pasos y Auditoría de Mensajes**
+  - Ejecución completa interactiva desde que el operador envía:
+    `"Establish an IP connection from H1 to H2 with 1GB bandwidth"`.
+  - Visualizador de trazas estilo **Wireshark** en el propio Notebook que imprime
+    la tabla exacta de mensajes HTTP intercambiados (replicando la Figura 3 del
+    paper).
+  - Impresión formateada de los JSON de planificación y del `trace` final
+    (replicando la Figura 5 del paper).
+  - Verificación del `ping` antes y después en el plano de datos (replicando la
+    Figura 4 del paper).
+
+- **Módulo 7: Desafíos Prácticos y Ejercicios Evaluados para Estudiantes (Enfoque Redes de Acceso)**
+  Propón 3 ejercicios prácticos con plantillas de código (*scaffolding*) para que
+  los alumnos resuelvan durante el taller:
+  - **Ejercicio 1 (Validación de QoS y Ancho de Banda en el PCE):** Modificar la
+    herramienta MCP `compute_route` para que reciba también `bitrate_gbps` y
+    descarte enlaces de acceso/agregación cuya capacidad residual sea menor a la
+    solicitada (inspirado en el Algoritmo 1 de la Referencia [1]:
+    $e.cap < \tau \cdot x^{max}$), eligiendo una ruta alternativa o activando un
+    *Optical Bypass* entre `R1` y `R3`.
+  - **Ejercicio 2 (Nuevo Agente Especializado Óptico P2MP vía A2A):** Basado en
+    la Referencia [2], crear un segundo agente especializado llamado
+    `OpticalP2MPAgent` registrado vía A2A y una herramienta MCP
+    `allocate_subcarriers(leaf_node: str, num_sc: int)` que asigne subportadoras
+    contiguas de $25\text{ Gb/s}$ en un árbol de acceso P2MP sin solapamiento
+    espectral.
+  - **Ejercicio 3 (Integración con ETSI TeraFlowSDN y Telemetría):** Escribir un
+    nuevo workflow en ChromaDB para "Diagnosticar degradación de latencia y
+    reconfigurar conexión", integrando una herramienta MCP que consulte métricas
+    de retardo e2e o estimación de BER del Gemelo Digital OCATA (Ref [3]).
+
+================================================================================
+6. REGLAS TÉCNICAS Y FORMATO DE ENTREGA PARA CLAUDE
+================================================================================
+1. Entrega el contenido estructurado como un **Jupyter Notebook completo** o
+   bloques claramente delimitados de celdas `[MARKDOWN]` y `[CODE]` listos para
+   ejecutarse secuencialmente sin errores.
+2. Todo el código Python debe ser limpio, modular, bien documentado en español y
+   compatible con Python 3.10 a 3.13.
+3. Asegúrate de que ninguna celda bloquee el kernel de Jupyter indefinidamente
+   (si levantas servidores HTTP/MCP o procesos de Ryu/Mininet dentro del notebook,
+   ejecútalos en hilos `threading.Thread(..., daemon=True)` o subprocesos en
+   segundo plano con clientes de prueba directos).
+4. Mantén un tono académico riguroso pero sumamente didáctico, ideal para
+   estudiantes universitarios de último año de Ingeniería en un curso de Redes de
+   Acceso.

@@ -1,0 +1,11 @@
+chromadb
+fastapi
+fastmcp
+ipywidgets
+jupyterlab
+matplotlib
+networkx
+ollama
+pydantic
+requests
+uvicorn
